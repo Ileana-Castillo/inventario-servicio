@@ -103,10 +103,26 @@ Carpeta del ejecutable:
 1. Click en el botón "Eliminar" del artículo
 2. Confirmar la eliminación
 
-### Exportar a CSV
-1. Click en el botón "Exportar CSV"
-2. El archivo se guardará en la misma carpeta donde está el ejecutable de la aplicación como `inventario_export.csv`
-3. La aplicación mostrará la ruta completa del archivo exportado
+### Exportar Inventario
+1. Haz clic en el botón **"Exportar Inventario"** (verde)
+2. Selecciona dónde quieres guardar el archivo `.db`
+3. El sistema automáticamente:
+   - Guarda la base de datos en la ubicación seleccionada
+   - Crea una carpeta `imagenes_inventario` con todas las imágenes
+4. ¡Listo! Tu inventario está respaldado
+
+### Importar Inventario
+1. Haz clic en el botón **"Importar Inventario"** (naranja)
+2. Confirma que quieres reemplazar tu inventario actual
+3. Selecciona el archivo `.db` que quieres importar
+4. El sistema automáticamente:
+   - Reemplaza la base de datos actual
+   - Busca y restaura las imágenes (si están en la carpeta `imagenes_inventario`)
+   - Recarga la interfaz con los datos importados
+
+**📋 Requisitos para importar:**
+- Archivo `.db` de una exportación previa
+- (Opcional) Carpeta `imagenes_inventario` en el mismo directorio del `.db`
 
 ## Base de Datos
 
