@@ -168,7 +168,7 @@
           </div>
 
           <p class="text-xs text-gray-500 mb-4">
-            {{ item.created_at | date:'dd/MM/yyyy HH:mm' }}
+            {{ item.created_at | date:'dd/MM/yyyy HH:mm':'UTC-6' }}
           </p>
 
           <!-- Actions -->

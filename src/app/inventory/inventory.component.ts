@@ -39,7 +39,6 @@ export class InventoryComponent implements OnInit {
       this.isLoading = true;
       const rawItems = await this.inventoryService.getAllItems();
 
-      // Convertir las rutas de imágenes a URLs utilizables
       this.items = await Promise.all(
         rawItems.map(async (item) => {
           const itemWithUrl: InventoryItemWithUrl = { ...item };
@@ -62,7 +61,6 @@ async convertImagePath(imagePath: string): Promise<string> {
   try {
     const { convertFileSrc } = await import('@tauri-apps/api/core');
     
-    // Verificar si el archivo existe antes de convertir
     const { exists } = await import('@tauri-apps/plugin-fs');
     const fileExists = await exists(imagePath);
     
@@ -193,7 +191,6 @@ async exportData() {
   } catch (error: any) {
     console.error('Error completo:', error);
     
-    // Mostrar el error específico
     let errorMessage = 'Error desconocido';
     if (error?.message) {
       errorMessage = error.message;
@@ -214,7 +211,6 @@ async importData() {
     
     alert(`✅ ${result.message}`);
     
-    // Recargar los items para mostrar los datos importados
     await this.loadItems();
     
   } catch (error: any) {
@@ -238,7 +234,6 @@ async importData() {
   }
 
  filterItems() {
-  // Primero filtramos por búsqueda
   let result: InventoryItemWithUrl[];
   if (!this.searchTerm.trim()) {
     result = [...this.items];
@@ -249,7 +244,6 @@ async importData() {
     );
   }
 
-  // Luego ordenamos según la opción seleccionada
   if (this.sortBy === 'disponible_asc') {
     result.sort((a, b) => a.cantidad_disponible - b.cantidad_disponible);
   } else if (this.sortBy === 'disponible_desc') {

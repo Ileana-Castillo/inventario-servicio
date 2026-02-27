@@ -41,7 +41,7 @@ fn init_database(app_handle: &AppHandle) -> Result<Connection> {
             image_path TEXT,
             cantidad_necesaria INTEGER NOT NULL DEFAULT 0,
             cantidad_disponible INTEGER NOT NULL DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME DEFAULT (datetime('now', 'localtime'))
         )",
         [],
     )?;
@@ -92,10 +92,13 @@ fn add_item(
         image_path = Some(save_image(&base64_data, &state.app_handle)?);
     }
 
+    // Obtener fecha y hora local
+    let local_time = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.execute(
-        "INSERT INTO inventory (name, image_path, cantidad_necesaria, cantidad_disponible) VALUES (?1, ?2, ?3, ?4)",
-        params![name, image_path, cantidad_necesaria, cantidad_disponible],
+        "INSERT INTO inventory (name, image_path, cantidad_necesaria, cantidad_disponible, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![name, image_path, cantidad_necesaria, cantidad_disponible, local_time],
     )
     .map_err(|e| e.to_string())?;
 
@@ -205,57 +208,6 @@ fn delete_item(id: i64, state: State<AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn export_to_csv(state: State<AppState>) -> Result<String, String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    let mut stmt = db
-        .prepare("SELECT id, name, image_path, cantidad_necesaria, cantidad_disponible, created_at FROM inventory ORDER BY created_at DESC")
-        .map_err(|e| e.to_string())?;
-
-    let items = stmt
-        .query_map([], |row| {
-            Ok(InventoryItem {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                image_path: row.get(2)?,
-                cantidad_necesaria: row.get(3)?,
-                cantidad_disponible: row.get(4)?,
-                created_at: row.get(5)?,
-            })
-        })
-        .map_err(|e| e.to_string())?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
-
-    // Obtener la carpeta donde está el ejecutable
-    let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-    let exe_dir = exe_path.parent().ok_or("No se pudo obtener el directorio del ejecutable")?;
-
-    let mut csv_path = exe_dir.to_path_buf();
-    csv_path.push("inventario_export.csv");
-
-    let mut wtr = csv::Writer::from_path(&csv_path).map_err(|e| e.to_string())?;
-
-    wtr.write_record(&["ID", "Nombre", "Cantidad Necesaria", "Cantidad Disponible", "Ruta de Imagen", "Fecha de Creación"])
-        .map_err(|e| e.to_string())?;
-
-    for item in items {
-        wtr.write_record(&[
-            item.id.unwrap_or(0).to_string(),
-            item.name,
-            item.cantidad_necesaria.to_string(),
-            item.cantidad_disponible.to_string(),
-            item.image_path.unwrap_or_default(),
-            item.created_at.unwrap_or_default(),
-        ])
-        .map_err(|e| e.to_string())?;
-    }
-
-    wtr.flush().map_err(|e| e.to_string())?;
-
-    Ok(csv_path.to_string_lossy().to_string())
-}
-
-#[tauri::command]
 fn get_db_path(state: State<AppState>) -> Result<String, String> {
     let mut db_path = get_app_data_dir(&state.app_handle);
     db_path.push("inventario.db");
@@ -350,7 +302,6 @@ pub fn run() {
             add_item,
             update_item,
             delete_item,
-            export_to_csv,
             get_db_path,
             fix_image_paths
         ])
