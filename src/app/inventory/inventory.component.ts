@@ -18,7 +18,7 @@ export class InventoryComponent implements OnInit {
   items: InventoryItemWithUrl[] = [];
   filteredItems: InventoryItemWithUrl[] = [];
   searchTerm: string = '';
-  sortBy: 'none' | 'disponible_asc' | 'disponible_desc' = 'none';
+  sortBy: 'none' | 'disponible_asc' | 'disponible_desc' | 'nombre_asc' | 'nombre_desc' = 'none';
   isModalOpen = false;
   isEditMode = false;
   currentItem: InventoryItem = { name: '', cantidad_necesaria: 0, cantidad_disponible: 0 };
@@ -58,18 +58,28 @@ export class InventoryComponent implements OnInit {
     }
   }
 
-  async convertImagePath(imagePath: string): Promise<string> {
-    try {
-      const { convertFileSrc } = await import('@tauri-apps/api/core');
-      const convertedUrl = convertFileSrc(imagePath);
-      console.log('Original path:', imagePath);
-      console.log('Converted URL:', convertedUrl);
-      return convertedUrl;
-    } catch (error) {
-      console.error('Error converting file path:', error);
+async convertImagePath(imagePath: string): Promise<string> {
+  try {
+    const { convertFileSrc } = await import('@tauri-apps/api/core');
+    
+    // Verificar si el archivo existe antes de convertir
+    const { exists } = await import('@tauri-apps/plugin-fs');
+    const fileExists = await exists(imagePath);
+    
+    if (!fileExists) {
+      console.warn('Imagen no encontrada:', imagePath);
       return '';
     }
+    
+    const convertedUrl = convertFileSrc(imagePath);
+    console.log('Original path:', imagePath);
+    console.log('Converted URL:', convertedUrl);
+    return convertedUrl;
+  } catch (error) {
+    console.error('Error converting file path:', error);
+    return '';
   }
+}
 
   openAddModal() {
     this.isEditMode = false;
@@ -171,44 +181,87 @@ export class InventoryComponent implements OnInit {
     }
   }
 
-  async exportData() {
-    try {
-      this.isLoading = true;
-      const filePath = await this.inventoryService.exportToCsv();
-      alert(`Inventario exportado exitosamente en: ${filePath}`);
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      alert('Error al exportar el inventario');
-    } finally {
-      this.isLoading = false;
+async exportData() {
+  try {
+    this.isLoading = true;
+    console.log('1. Iniciando exportación...');
+    
+    const result = await this.inventoryService.exportDatabase();
+    
+    console.log('2. Exportación exitosa:', result);
+    alert(`Base de datos exportada exitosamente en: ${result.dbPath}\nImágenes en: ${result.imagesPath}`);
+  } catch (error: any) {
+    console.error('Error completo:', error);
+    
+    // Mostrar el error específico
+    let errorMessage = 'Error desconocido';
+    if (error?.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
     }
+    
+    alert(`Error al exportar la base de datos:\n${errorMessage}`);
+  } finally {
+    this.isLoading = false;
   }
+}
+
+async importData() {
+  try {
+    this.isLoading = true;
+    const result = await this.inventoryService.importDatabase();
+    
+    alert(`✅ ${result.message}`);
+    
+    // Recargar los items para mostrar los datos importados
+    await this.loadItems();
+    
+  } catch (error: any) {
+    console.error('Error importing database:', error);
+    
+    let errorMessage = 'Error desconocido';
+    if (error?.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
+    
+    alert(`❌ Error al importar la base de datos:\n${errorMessage}`);
+  } finally {
+    this.isLoading = false;
+  }
+}
 
   toggleViewMode() {
     this.viewMode = this.viewMode === 'grid' ? 'table' : 'grid';
   }
 
-  filterItems() {
-    // Primero filtramos por búsqueda
-    let result: InventoryItemWithUrl[];
-    if (!this.searchTerm.trim()) {
-      result = [...this.items];
-    } else {
-      const search = this.searchTerm.toLowerCase();
-      result = this.items.filter(item =>
-        item.name.toLowerCase().includes(search)
-      );
-    }
-
-    // Luego ordenamos según la opción seleccionada
-    if (this.sortBy === 'disponible_asc') {
-      result.sort((a, b) => a.cantidad_disponible - b.cantidad_disponible);
-    } else if (this.sortBy === 'disponible_desc') {
-      result.sort((a, b) => b.cantidad_disponible - a.cantidad_disponible);
-    }
-
-    this.filteredItems = result;
+ filterItems() {
+  // Primero filtramos por búsqueda
+  let result: InventoryItemWithUrl[];
+  if (!this.searchTerm.trim()) {
+    result = [...this.items];
+  } else {
+    const search = this.searchTerm.toLowerCase();
+    result = this.items.filter(item =>
+      item.name.toLowerCase().includes(search)
+    );
   }
+
+  // Luego ordenamos según la opción seleccionada
+  if (this.sortBy === 'disponible_asc') {
+    result.sort((a, b) => a.cantidad_disponible - b.cantidad_disponible);
+  } else if (this.sortBy === 'disponible_desc') {
+    result.sort((a, b) => b.cantidad_disponible - a.cantidad_disponible);
+  } else if (this.sortBy === 'nombre_asc') {
+    result.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (this.sortBy === 'nombre_desc') {
+    result.sort((a, b) => b.name.localeCompare(a.name));
+  }
+
+  this.filteredItems = result;
+}
 
   onSearchChange() {
     this.filterItems();

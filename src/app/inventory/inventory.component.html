@@ -23,7 +23,14 @@
           [disabled]="isLoading"
           class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
         >
-          Exportar CSV
+          Exportar Inventario
+        </button>
+        <button
+          (click)="importData()"
+          [disabled]="isLoading"
+          class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+        >
+          Importar Inventario
         </button>
         <button
           (click)="openAddModal()"
@@ -71,6 +78,8 @@
             class="appearance-none bg-white border border-gray-300 rounded-lg py-3 pl-4 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
           >
             <option value="none">Sin ordenar</option>
+            <option value="nombre_asc">Nombre: A - Z</option>
+            <option value="nombre_desc">Nombre: Z - A</option>
             <option value="disponible_asc">Existencia: Menor a Mayor</option>
             <option value="disponible_desc">Existencia: Mayor a Menor</option>
           </select>

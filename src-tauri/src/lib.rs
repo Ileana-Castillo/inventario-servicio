@@ -255,6 +255,56 @@ fn export_to_csv(state: State<AppState>) -> Result<String, String> {
     Ok(csv_path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn get_db_path(state: State<AppState>) -> Result<String, String> {
+    let mut db_path = get_app_data_dir(&state.app_handle);
+    db_path.push("inventario.db");
+    
+    Ok(db_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn fix_image_paths(state: State<AppState>) -> Result<i32, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    
+    // Obtener la nueva ruta de imágenes
+    let mut new_images_dir = get_app_data_dir(&state.app_handle);
+    new_images_dir.push("inventory_images");
+    
+    // Obtener todos los items con imágenes
+    let mut stmt = db
+        .prepare("SELECT id, image_path FROM inventory WHERE image_path IS NOT NULL")
+        .map_err(|e| e.to_string())?;
+    
+    let items: Vec<(i64, String)> = stmt
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+    
+    let mut updated = 0;
+    
+    for (id, old_path) in items {
+        // Extraer solo el nombre del archivo
+        if let Some(filename) = std::path::Path::new(&old_path).file_name() {
+            let mut new_path = new_images_dir.clone();
+            new_path.push(filename);
+            
+            // Verificar si el archivo existe en la nueva ubicación
+            if new_path.exists() {
+                db.execute(
+                    "UPDATE inventory SET image_path = ?1 WHERE id = ?2",
+                    params![new_path.to_string_lossy().to_string(), id],
+                )
+                .map_err(|e| e.to_string())?;
+                updated += 1;
+            }
+        }
+    }
+    
+    Ok(updated)
+}
+
 fn save_image(base64_data: &str, app_handle: &AppHandle) -> Result<String, String> {
     use base64::{Engine as _, engine::general_purpose};
 
@@ -300,7 +350,9 @@ pub fn run() {
             add_item,
             update_item,
             delete_item,
-            export_to_csv
+            export_to_csv,
+            get_db_path,
+            fix_image_paths
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -24,7 +24,33 @@
       "assetProtocol": {
         "enable": true,
         "scope": ["**"]
-      }
+      },
+      "capabilities": [
+        {
+          "identifier": "main-capability",
+          "description": "Capability for the main window",
+          "windows": ["main"],
+          "permissions": [
+            "core:default",
+            "core:path:default",
+            "core:event:default",
+            "fs:default",
+            "fs:allow-appdata-read-recursive",
+            "fs:allow-appdata-write-recursive",
+            "fs:allow-download-read-recursive",
+            "fs:allow-download-write-recursive",
+            "fs:allow-desktop-read-recursive",
+            "fs:allow-desktop-write-recursive",
+            "fs:allow-document-read-recursive",
+            "fs:allow-document-write-recursive",
+            "fs:allow-home-read-recursive",
+            "fs:allow-home-write-recursive",
+            "dialog:default",
+            "dialog:allow-save",
+            "dialog:allow-open"
+          ]
+        }
+      ]
     }
   },
   "bundle": {
@@ -37,5 +63,10 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "fs": {
+      "requireLiteralLeadingDot": false
+    }
   }
 }
